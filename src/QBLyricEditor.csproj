@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <OutputType>WinExe</OutputType>
+        <UseWPF>true</UseWPF>
+    </PropertyGroup>
+    <PropertyGroup>
+        <ApplicationIcon>Icons\LrcMaker.ico</ApplicationIcon>
+    </PropertyGroup>
+    <!--
+        以下配置只在 dotnet publish 且带 RID（如 win-x64）参数时才生效，
+        对普通的 dotnet build / dotnet run（不带 RuntimeIdentifier）没有任何影响。
+        效果：加上 self-contained 参数发布时即可直接产出单文件 exe，
+        不需要每次都手动追加 PublishSingleFile 等参数。
+    -->
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+        <PublishSingleFile>true</PublishSingleFile>
+        <!-- NAudio/SoundTouch 依赖的原生 dll 无法内联进单文件，需要在启动时自解压到临时目录 -->
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    </PropertyGroup>
+    <!-- 单文件压缩（EnableCompressionInSingleFile）只有自包含发布才支持，
+         框架依赖发布(self-contained=false)用它会直接报 NETSDK1176，所以单独收紧条件 -->
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' != '' AND '$(SelfContained)' == 'true'">
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <Resource Include="Icons\**\*.*" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="NAudio" Version="2.3.0" />
+        <PackageReference Include="SoundTouch.Net.NAudioSupport.Core" Version="2.3.2" />
+        <!--
+            System.Configuration.ConfigurationManager 和 System.Text.Encoding.CodePages 不再显式引用：
+            net10.0-windows（WindowsDesktop 共享框架）已经隐式携带了这两个包，显式引用会触发
+            NU1510（"PackageReference 将不会删除，可能不需要它"）警告。去掉后功能不受影响，
+            ConfigurationManager.AppSettings、CodePagesEncodingProvider 等 API 依然可用。
+        -->
+        <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+        <!-- 用社区维护、原生支持 .NET Standard 2.0 的 TagLibSharp 代替已停止更新、只有 .NET Framework 目标的 taglib 包，
+             消除 NU1701（还原兼容包）警告；命名空间仍是 TagLib，代码无需改动 -->
+        <PackageReference Include="TagLibSharp" Version="2.3.0" />
+        <PackageReference Include="Ude.NetStandard" Version="1.2.0" />
+    </ItemGroup>
+</Project>
